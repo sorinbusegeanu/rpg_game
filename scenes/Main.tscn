@@ -1,0 +1,171 @@
+[gd_scene, load_path="res://scenes/Main.tscn""]
+
+[node_main_root]
+type="Control"
+transform=Vector10(0, 0)
+scale=Vector2(1, 1)
+name="Main"
+parent="root"
+anchor_left=0
+anchor_top=0
+anchor_right=1
+anchor_bottom=1
+
+[node_root_layout]
+type="MarginContainer"
+transform=Vector10(0, 0)
+scale=Vector2(1, 1)
+name="RootLayout"
+parent="Main"
+anchor_left=0
+anchor_top=0
+anchor_right=1
+anchor_bottom=1
+
+[node_title_label]
+type="Label"
+transform=Vector10(0, 0)
+scale=Vector2(1, 1)
+name="TitleLabel"
+parent="RootLayout"
+translation=Vector10(0, 50)
+text="Dark Forest RPG - Logic Prototype"
+
+[node_top_stats]
+type="HBoxContainer"
+transform=Vector10(0, 0)
+scale=Vector2(1, 1)
+name="TopStats"
+parent="RootLayout"
+translation=Vector10(0, 150)
+
+[node_state_label]
+type="Label"
+transform=Vector10(0, 0)
+scale=Vector2(1, 1)
+name="StateLabel"
+parent="TopStats"
+text="Status: ..."
+
+[node_position_label]
+type="Label"
+transform=Vector10(0, 0)
+scale=Vector2(1, 1)
+name="PositionLabel"
+parent="TopStats"
+text="Distance: 0m"
+
+[node_timer_label]
+type="Label"
+transform=Vector10(0, 0)
+scale=Vector2(1, 1)
+name="TimerLabel"
+parent="TopStats"
+text="Timer: 5s | Heartbeat: 0"
+
+[node_buttons]
+type="HBoxContainer"
+transform=Vector10(0, 0)
+scale=Vector2(1, 1)
+name="Buttons"
+parent="RootLayout"
+translation=Vector10(0, 400)
+
+[node_advance_button]
+type="Button"
+transform=Vector10(0, 0)
+scale=Vector2(1, 1)
+name="AdvanceButton"
+parent="Buttons"
+text="Advance Step"
+
+[node_auto_button]
+type = "Button"
+transform = Vector10(0, 0)
+scale = Vector2(1, 1)
+name = "AutoButton"
+parent = "Buttons"
+text = "Start Auto"
+
+[node_stop_button]
+type = "Button"
+transform = Vector10(0, 0)
+scale = Vector2(1, 1)
+name = "StopButton"
+parent = "Buttons"
+text = "Stop Auto"
+
+[node_main_columns]
+type="HBoxContainer"
+transform=Vector10(0, 0)
+scale=Vector2(1, 1)
+name="MainColumns"
+parent="RootLayout"
+translation=Vector10(0, 500)
+
+[node_hero_panel]
+type="VBoxContainer"
+transform=Vector10(0, 0)
+scale=Vector2(1, 1)
+name="HeroPanel"
+parent="MainColumns"
+
+[node_hero_title]
+type="Label"
+transform=Vector10(0, 0)
+scale=Vector2(1, 1)
+name="HeroTitle"
+parent="HeroPanel"
+text="Heroes"
+
+[node_hero_list]
+type="RichTextLabel"
+transform=Vector10(0, 0)
+scale=Vector2(1, 1)
+name="HeroList"
+parent="HeroPanel"
+
+[node_enemy_panel]
+type="VBoxContainer"
+transform=Vector10(0, 0)
+scale=Vector2(1, 1)
+name="EnemyPanel"
+parent="MainColumns"
+
+[node_enemy_title]
+type="Label"
+transform=Vector10(0, 0)
+scale=Vector2(1, 1)
+name="EnemyTitle"
+parent="EnemyPanel"
+text="Enemies"
+
+[node_enemy_list]
+type="RichTextLabel"
+transform=Vector10(0, 0)
+scale=Vector2(1, 1)
+name="EnemyList"
+parent="EnemyPanel"
+
+[node_log_panel]
+type="VBoxContainer"
+transform=Vector10(0, 0)
+scale=Vector2(1, 1)
+name="LogPanel"
+parent="RootLayout"
+translation=Vector10(0, 800)
+
+[node_log_title]
+type="Label"
+transform=Vector10(0, 0)
+scale=Vector10(1, 1)
+name="LogTitle"
+parent="LogPanel"
+text="Log"
+
+[node_log_list]
+type="RichTextLabel"
+transform=Vector10(0, 0)
+scale=Vector2(1, 1)
+name="LogList"
+parent="LogPanel"

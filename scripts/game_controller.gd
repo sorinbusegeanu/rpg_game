@@ -1,44 +1,40 @@
 extends Node
 
-# The GameController is the main entry point and sequencer.
-# It manages the flow of information between data, logic, and UI.
-
+# Core Engine References
 var state_manager
 var world_manager
 var combat_manager
-var ui_manager
+var game_data
+var current_enemies = []
 
 func _init():
-	state_manager = load("res://scripts/states.gd").new()
-	world_manager = load("res://scripts/world_manager.gd").new()
-	combat_manager = load("res://scripts/combat_manager.gd").new()
-	ui_manager = load("res://scripts/ui_manager.gd").new()
+    # Load and Initialize Sub-Modules
+    # Since these are scripts, we instantiate them as objects.
+    game_data = load("res://scripts/game_data.gd").new()
+    state_manager = load("res://scripts/states.gd").new()
+    world_manager = load("res://scripts/world_manager.gd").new()
+    combat_manager = load("res://scripts/combat_manager.gd").new()
 
-func _ready():
-	print("Game Controller active.")
-	state_manager.change_state(0) # Start in Exploration
+    # Hook up the logic flow
+    world_manager.setup(game_data)
+    
+    # Logging state for debugging during startup
+    print("Game Controller: Initialized")
+    print("World Manager Status: ", world_manager)
+    print("Combat Manager Status: ", combat_manager)
 
-func _process(delta: float):
-	if state_manager.is_exploration():
-		world_manager.update_world(delta)
-		# If world logic detects a challenge, transition to combat via the manager
-		
-	elif state_manager.is_transition():
-		# Handle visual fade-out of the forest and fade-in of the battleground
-		pass
-	
-	elif state_manager.is_combat():
-		# Core Combat Logic loop
-		combat_manager.process_combat(delta)
-		# UI update happens concurrently with combat logic
-		# In a real game, we'd pass the current hero list to the ui_manager
-		update_ui_cards()
+func process(delta):
+    # This allows the UI or a ticker to advance the game world by delta time.
+    if state_manager.is_exploration():
+        world_manager.update_world(delta)
+    elif state_manager.is_transition():
+        world_manager.update_world(delta)
+    elif state_manager.is_combat():
+        combat_manager.process_combat(delta)
 
-func update_ui_cards():
-	# This would pull from the data manager (or directly from variables)
-	pass
+# Utility methods for the UI layer
+func get_state_name() -> String:
+    return state_manager.get_state_name()
 
-func on_special_triggered(hero_name: String):
-	# When combat_manager triggers a special, it notifies UI to show pulse.
-	ui_manager.trigger_pulse(hero_name)
-fi
+func get_current_enemy_count() -> int:
+    return current_enemies.size()

@@ -49,33 +49,28 @@ engine = GameEngine()
 
 # --- WEB SERVER IMPLEMENTATION ---
 class DashboardHandler(BaseHTTPRequestHandler):
-    def _handle_preflight(self):
-        """Handle CORS preflight (OPTIONS) requests."""
-        self.send_response(200)
+    def _send_common_headers(self, status=200, content_type=None):
+        """Correctly sequences response and header calls for BaseHTTPRequestHandler."""
+        self.send_response(status)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        if content_type:
+            self.send_header("Content-type", content_type)
         self.end_headers()
 
     def do_GET(self):
-        # Standardize the path immediately
         path = urlparse(self.path).path
+        # Standardize path (handle empty or trailing slashes)
         if path == "" or path == "/":
             path = "/"
         elif path.endswith("/"):
             path = path[:-1]
-        
-        print(f"[*] Incoming: {self.path} -> Interpreted as: {path}")
 
-        # Set CORS for all GET requests
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        print(f"[*] Request received: {self.path} -> parsed as: {path}")
 
-        if path == "/":
-            self.send_response(200)
-            self.send_header("Content-type", "text/html")
-            self.end_headers()
+        if path == "/" or path == "/index.html":
+            self._send_common_headers(200, "text/html")
             content = """
             <html>
             <head>
@@ -114,7 +109,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     async function fetchData() {
                         try {
                             const res = await fetch('/data');
-                            if (!res.ok) throw new Error("HTTP " + res.status);
+                            if (!res.ok) throw new Error("Status " + res.status);
                             const data = await res.json();
                             document.getElementById('state').innerText = data.state;
                             document.getElementById('dist').innerText = data.distance;
@@ -136,7 +131,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
                         const originalMsg = statusMsg.innerText;
                         statusMsg.innerText = "Processing...";
                         try {
-                            // Use a very simple fetch call
                             const res = await fetch('/step');
                             if (res.ok) {
                                 statusMsg.innerText = "Success!";
@@ -158,11 +152,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
             </html>
             """
             self.wfile.write(content.encode())
-        elif "/data" in path:
-            # No need for separate call to _handle_preflight since we set headers above
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
+        elif path == "/data":
+            self._send_common_headers(200, "application/json")
             res = {
                 "state": engine.state, 
                 "distance": engine.distance, 
@@ -172,25 +163,20 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 "logs": engine.logs
             }
             self.wfile.write(json.dumps(res).encode())
-        elif "/step" in path:
-            # No need for separate call to _handle_preflight
+        elif path == "/step":
             engine.process()
-            print(f"--- STEP TRIGGERED! Status: {engine.state} | Dist: {engine.distance}")
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
+            print(f"--- ACTION TRIGGERED: {engine.state} | Dist: {engine.distance} ---")
+            self._send_common_headers(200, "application/json")
             self.wfile.write(b'{"status":"ok"}')
+        else:
+            self._send_common_headers(404, "application/json")
+            self.wfile.write(b'{"error":"not_found"}')
 
     def do_OPTIONS(self):
-        # Standard logic for CORS preflight
-        self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
-        self.end_headers()
+        # Required for CORS preflight requests
+        self._send_common_headers(200)
 
 if __name__ == "__main__":
-    # Force server to listen on all interfaces clearly
     server = HTTPServer(('0.0.0.0', 8000), DashboardHandler)
     print("Server is running on port 8000...")
     try:
