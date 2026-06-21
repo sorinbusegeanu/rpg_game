@@ -1,101 +1,120 @@
 extends Node
 
-# --- CONTENT SYSTEM & DATA TABLES ---
-
-# Defined as the items found in "loot bags" or dropped by monsters.
 class LootItem:
-	var name: String
-	var type: String # Material, Relic, Essence
-	var value: int   # Gold/Gold_Multiplier
-	var rarity: String # Common, Rare, Legendary
+    var name: String
+    var type: String
+    var value: int
+    var rarity: String
 
-# A structured way to handle rewards based on monster difficulty.
+    func _init(_name: String, _type: String, _value: int, _rarity: String):
+        name = _name
+        type = _type
+        value = _value
+        rarity = _rarity
+
 class RewardTable:
-	var gold_base: int
-	var exp_reward: int
-	var special_drop_chance: float # 0.0 - 1.0
-	var loot_pool: Array[LootItem]
+    var gold_base: int
+    var exp_reward: int
+    var special_drop_chance: float
+    var loot_pool: Array
 
-# --- GAME ENTITIES ---
+    func _init(_gold_base: int, _exp_reward: int, _special_drop_chance: float, _loot_pool: Array):
+        gold_base = _gold_base
+        exp_reward = _exp_reward
+        special_drop_chance = _special_drop_chance
+        loot_pool = _loot_pool
 
 class Entity:
-	var name: String
-	var role: String        # Tank, Mage, Defender, AOE_DD, Boss, Minion
-	var health: float
-	var max_heart: float    # Hidden logic check for consistency
-	var max_health: float
-	var mana: float         # Current Mana (Max 1000)
-	var action_speed: float # Timer values: 2.4, 3.0, 3.4
-	var special_move: String
-	
-	func _init(_name: String, _role: String, _hp: float, _spd: float, _special: String = "None"):
-		self.name = _name
-		self.role = _role
-		self.max_heart = _hp 
-		self.max_health = _hp
-		self.mana = 500 # Start at half-full for the first round
-		self.action_speed = _spd
-		self.special_move = _special
+    var name: String
+    var role: String
+    var health: float
+    var max_health: float
+    var max_heart: float
+    var mana: float
+    var action_speed: float
+    var special_move: String
 
-# --- REWARD DEFINITIONS ---
+    func _init(_name: String, _role: String, _hp: float, _spd: float, _special: String = "None"):
+        name = _name
+        role = _role
+        health = _hp
+        max_health = _hp
+        max_heart = _hp
+        mana = 500
+        action_speed = _spd
+        special_move = _special
 
-var loot_definitions = {
-	"minion": RewardTable.new(100, 75, 0.1, [
-		LootItem.new("Scraps of Bone", "Material", 20, "Common"),
-		LootItem.new("Dull Iron Ore", "Material", 50, "Common")
-	]),
-	"boss": RewardTable.new(1000, 500, 0.4, [
-		LootItem.new("Cursed Relic", "Relic", 500, "Rare"),
-		LootItem.new("Soul Fragment", "Essence", 1000, "Legendary")
-	])
-}
+    func add_mana(amount: float):
+        mana = clamp(mana + amount, 0.0, 1000.0)
 
-# --- HERO ROSTER (The Chosen Ones) ---
+    func can_use_special() -> bool:
+        return mana >= 1000.0
+
+    func perform_action():
+        add_mana(100)
+        print(name, " performed an action. Mana: ", mana)
+
+    func receive_hit(damage: float):
+        health = max(0.0, health - damage)
+        if role not in ["Minion", "Boss", "Enemy"]:
+            add_mana(200)
+
+    func is_alive() -> bool:
+        return health > 0.0
+
+    func reset_for_combat():
+        health = max_health
+        mana = clamp(mana, 0.0, 1000.0)
+
+var loot_definitions = {}
 var hero_list = []
-
-func _init():
-	# The Party (Roles: Tank, Mage, Defender, AOE_DD)
-	# Speeds assigned based on your requested values (2.4s, 3.0s, 3.4s)
-	hero_list.push(Entity.new("Elara", "Mage", 110, 2.4, "Star-Fall"))        # Fast & Heavy Magic
-	hero_list.push(Entity.new("Korgath", "Tank", 350, 3.4, "Iron Bastion"))    # Slow & Unyielding
-	hero_list.push(Entity.new("Silas", "Defender", 220, 3.0, "Guard's Vow"))   # Balanced Defense
-	hero_list.push(Entity.new("Kaelen", "Mage", 130, 2.4, "Void Pulse"))       # Fast & Mysterious
-	hero_list.push(Entity.new("Ignus", "AOE_DD", 190, 3.0, "Flameed Veil"))    # Balanced Offense
-
-# --- ENEMY POPULATION (The Forgotten Woods) ---
 var enemy_pool = []
 
 func _init():
-	# Hero definition is handled above in the script's scope or added here if needed
-	# Re-calculating local logic for variety.
-	
-	# Minion Tier (Standard hurdles)
-	enemy_pool.push(Entity.new("Shadow Wolf", "Minion", 80, 2.4))           # Agile threat
-	enemy_pool.push(Entity.new("Grave Worm", "Minion", 50, 3.4))             # Slow but sturdy
-	enemy_pool.push(Entity.new("Blighted Vine", "Minion", 70, 3.0))          # Ambient threat
-	enemy_pool.push(Entity.new("Ghostly wisp", "Minion", 60, 2.4))           # Evasive spirit
-	enemy_pool.push(Entity.new("Hollow Husk", "Minion", 120, 3.4))           # Undead husk
+    init_rewards()
+    init_heroes()
+    init_enemies()
 
-	# Boss Tier (Major obstacles)
-	enemy_pool.push(Entity.new("The Weeping Willow", "Boss", 900, 3.4, "Sorrow's Root"))
-	enemy_pool.push(Entity.new("Cursed Sentry", "Boss", 850, 3.2, "Shield of Woes"))
-	enemy_pool.push(Entity.new("Void Shaper", "Boss", 1100, 3.4, "Dimensional Tear"))
+func init_rewards():
+    loot_definitions = {
+        "minion": RewardTable.new(100, 75, 0.1, [
+            LootItem.new("Scraps of Bone", "Material", 20, "Common"),
+            LootItem.new("Dull Iron Ore", "Material", 50, "Common")
+        ]),
+        "boss": RewardTable.new(1000, 500, 0.4, [
+            LootItem.new("Cursed Relic", "Relic", 500, "Rare"),
+            LootItem.new("Soul Fragment", "Essence", 1000, "Legendary")
+        ])
+    }
 
-# Logic to generate a random encounter for the world manager
-func get_encounter():
-	var chosen_minions = []
-	# Standard logic: 1 Boss + (1 to 3) Minions
-	boss_idx = randi() % 3 + 5 # Select from the last 3 entries in pool (the bosses)
-	boss = enemy_pool[boss_idx]
-	chosen_minions.append(boss)
-	
-	num_minions = rand_range(1, 4) # Can be 1, 2, or 3 minions
-	for i in range(num_minions):
-		# Select a random minion from indices 0-4
-		m_idx = randi() % 5
-		chosen_minions.append(enemy_pool[m_idx])
-		
-	return chosen_minions
+func init_heroes():
+    hero_list.clear()
+    hero_list.append(Entity.new("Elara", "Mage", 110, 2.4, "Star-Fall"))
+    hero_list.append(Entity.new("Korgath", "Tank", 350, 3.4, "Iron Bastion"))
+    hero_list.append(Entity.new("Silas", "Defender", 220, 3.0, "Guard's Vow"))
+    hero_list.append(Entity.new("Kaelen", "Mage", 130, 2.4, "Void Pulse"))
+    hero_list.append(Entity.new("Ignus", "AOE_DD", 190, 3.0, "Flame Veil"))
 
-var boss: Entity
-var boss_idx: int
+func init_enemies():
+    enemy_pool.clear()
+    enemy_pool.append(Entity.new("Shadow Wolf", "Minion", 80, 2.4))
+    enemy_pool.append(Entity.new("Grave Worm", "Minion", 50, 3.4))
+    enemy_pool.append(Entity.new("Blighted Vine", "Minion", 70, 3.0))
+    enemy_pool.append(Entity.new("Ghostly Wisp", "Minion", 60, 2.4))
+    enemy_pool.append(Entity.new("Hollow Husk", "Minion", 120, 3.4))
+    enemy_pool.append(Entity.new("The Weeping Willow", "Boss", 900, 3.4, "Sorrow's Root"))
+    enemy_pool.append(Entity.new("Cursed Sentry", "Boss", 850, 3.2, "Shield of Woes"))
+    enemy_pool.append(Entity.new("Void Shaper", "Boss", 1100, 3.4, "Dimensional Tear"))
+
+func get_heroes() -> Array:
+    return hero_list
+
+func get_encounter() -> Array:
+    var encounter = []
+    var boss_index = randi_range(5, 7)
+    encounter.append(enemy_pool[boss_index])
+    var minion_count = randi_range(1, 3)
+    for i in range(minion_count):
+        var minion_index = randi_range(0, 4)
+        encounter.append(enemy_pool[minion_index])
+    return encounter

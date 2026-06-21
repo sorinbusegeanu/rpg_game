@@ -1,114 +1,93 @@
 extends Control
 
-# Logic Components
 var controller
 var auto_running: bool = false
 var auto_step_seconds: float = 0.5
 var auto_step_accumulator: float = 0.0
 var log_lines: Array[String] = []
 
-# UI Node References
-var state_label: Label
-var position_label: Label
-var timer_label: Label
-var hero_list: RichTextLabel
-var enemy_list: RichTextLabel
-var log_list: RichTextLabel
-var advance_button: Button
-var auto_button: Button
-var stop_button: Button
+@onready var state_label: Label = $RootLayout/TopStats/StateLabel
+@onready var position_label: Label = $RootLayout/TopStats/PositionLabel
+@onready var timer_label: Label = $RootLayout/TopStats/TimerLabel
+@onready var hero_list: RichTextLabel = $RootLayout/MainColumns/HeroPanel/HeroList
+@onready var enemy_list: RichTextLabel = $RootLayout/MainColumns/EnemyPanel/EnemyList
+@onready var log_list: RichTextLabel = $RootLayout/MainColumns/LogPanel/LogList
+@onready var advance_button: Button = $RootLayout/Buttons/AdvanceButton
+@onready var auto_button: Button = $RootLayout/Buttons/AutoButton
+@onready var stop_button: Button = $RootLayout/Buttons/StopButton
 
 func _ready():
-    # 1. Link UI components from the scene tree
-    state_label = $RootLayout/TopStats/StateLabel
-    position_label = $RootLayout/TopStats/PositionLabel
-    timer_label = $RootLayout/TopStats/TimerLabel
-    hero_list = $RootLayout/MainColumns/HeroPanel/HeroList
-    enemy_list = $RootLayout/MainColumns/EnemyPanel/EnemyList
-    log_list = $RootLayout/MainColumns/LogPanel/LogList
-    advance_button = $RootLayout/Buttons/AdvanceButton
-    auto_button = $RootLayout/Buttons/AutoButton
-    stop_button = $RootLayout/Buttons/StopButton
-
-    # 2. Initialize the core controller
     controller = load("res://scripts/game_controller.gd").new()
     add_child(controller)
 
-    # 3. Connect interaction buttons
     advance_button.pressed.connect(_on_advance_pressed)
     auto_button.pressed.connect(_on_auto_pressed)
     stop_button.pressed.connect(_on_stop_pressed)
 
-    add_log("System Initialized.")
+    add_log("System initialized.")
     refresh_ui()
 
-func _process(delta):
+func _process(delta: float):
     if auto_running:
         auto_step_accumulator += delta
         if auto_step_accumulator >= auto_step_seconds:
             auto_step_accumulator = 0.0
-            _on_advance_pressed() # Trigger a single step manually
+            advance_one_step()
     refresh_ui()
 
 func _on_advance_pressed():
-    # Directly call the controller's main logic loop update
-    # Since game_controller handles its own processing but we want an instant jump:
-    if controller.has_method("process"):
-        controller.process()
-    add_log("Step Advancing...")
-    refresh_ui()
+    advance_one_step()
 
 func _on_auto_pressed():
     auto_running = true
-    add_log("Auto-mode Enabled")
+    add_log("Auto mode started.")
 
 func _on_stop_pressed():
     auto_running = false
-    add_log("Auto-mode Disabled")
+    add_log("Auto mode stopped.")
+
+func advance_one_step():
+    if controller != null and controller.has_method("process_step"):
+        controller.process_step(auto_step_seconds)
+        add_log("Step: " + controller.get_state_name() + " at " + str(round(controller.get_position())) + "m")
+    refresh_ui()
 
 func refresh_ui():
-    if not controller: return
+    if controller == null:
+        return
 
-    # Update Primary Metrics
-    state_label.text = "Status: " + (controller.get_state_name() if controller.has_method("get_state_name") else str(controller.state_manager.current_state))
-    position_label.text = "Distance: " + str(10) # Placeholder or use controller logic
-    # For now, let's just pull the raw values from the manager components
-    try_update_metrics()
+    state_label.text = "Status: " + controller.get_state_name()
+    position_label.text = "Distance: " + str(round(controller.get_position())) + "m"
+    timer_label.text = "Timer: " + str(snapped(controller.get_transition_timer(), 0.1)) + "s"
 
-    # Update Hero List
-    var heroes = []
-    if controller.game_data != null:
-        heroes = controller.game_data.get_heroes()
-    
-    hero_list.text = ""
-    for h in heroes:
-        hero_list.append_text(h.name + " | " + h.role + " | HP: " + str(h.heart) + "/" + str(h.max_heart) + " | Mana: " + str(h.mana) + "\n")
+    hero_list.clear()
+    for h in controller.get_heroes():
+        hero_list.append_text(
+            h.name + " | " + h.role +
+            " | HP: " + str(h.health) + "/" + str(h.max_heart if "max_heart" in h else h.max_health) +
+            " | Mana: " + str(h.mana) + "/1000" +
+            " | Speed: " + str(h.action_speed) + "\n"
+        )
 
-    # Update Enemy List
-    if controller.current_enemy == null:
-        enemy_list.text = "No active enemies"
+    enemy_list.clear()
+    var enemies = controller.get_enemies()
+    if enemies.is_empty():
+        enemy_list.append_text("No active encounter\n")
     else:
-        enemy_list.text = ""
-        for e in controller.current_enemies:
-            enemy_list.append_text(e.name + " | " + e.role + " | HP: " + str(e.heart) + "/" + str(e.max_heart) + "\n")
+        for e in enemies:
+            enemy_list.append_text(
+                e.name + " | " + e.role +
+                " | HP: " + str(e.health) + "/" + str(e.max_heart if "max_heart" in e else e.max_heart) +
+                " | Mana: " + str(e.mana) + "/1000" +
+                " | Speed: " + str(e.action_speed) + "\n"
+            )
 
-    # Update Logs
-    log_list.text = ""
-    for log in log_lines[-20:]:
-        log_list.append_text(log + "\n")
+    log_list.clear()
+    var start_index = max(0, log_lines.size() - 30)
+    for i in range(start_index, log_lines.size()):
+        log_list.append_text(log_lines[i] + "\n")
 
-func try_update_metrics():
-    # Attempt to update from various components safely
-    if controller.world_manager != null:
-        position_label.text = "Distance: " + str(controller.world_manager.distance) + "m"
-        timer_label.text = "Timer: " + str(max(0, controller.world_manager.timer)) + "s | Heartbeat: " + str(controller.world_manager.heart_time)
-    
-    if controller.state_manager != null:
-         # logic for state name or current value
-         pass
-
-func add_log(msg):
-    var timestamp = "" # Can add clock time later if needed
-    log_lines.append(msg)
-    # We don't update the text here to avoid heavy calculations in every sub-step, 
-    # refresh_ui handles that at next tick or button press.
+func add_log(message: String):
+    log_lines.append(message)
+    if log_lines.size() > 100:
+        log_lines.remove_at(0)

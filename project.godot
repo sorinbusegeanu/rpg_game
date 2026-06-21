@@ -1,25 +1,15 @@
-project.godot
+[application]
 
-[project]
-name="RPG Game Prototype"
-type="1"
-
-[import]
-# Leave empty unless specific imports are needed for assets not yet added.
-"""
-
-[rendering]
-# This is a game engine-specific configuration, but we will stick to the core requirements.
-# For Godot 4, compatibility mode (GLES3) is required for web export.
-# Note: The exact structure of project.godt can vary by Godot version.
-# We include specific paths as requested.
+config/name="RPG Game Prototype"
+run/main_scene="res://scenes/Main.tscn"
+config/features=PackedStringArray("4.3")
 
 [display]
+
 window/size/viewport_width=1280
 window/size/viewport_height=720
-# Compatibility mode for Web Export
-renderer/rendering_method="gl_compatibility"
 
-[application]
-config/name="RPG Game Prototype"
-main_scene="res://scenes/Main.tscn"
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"

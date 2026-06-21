@@ -1,33 +1,30 @@
 extends Node
 
-# Enum for the possible game states
 enum State { EXPLORATION, TRANSITION, COMBAT }
 
-# The current state of the game
 var current_state = State.EXPLORATION
 
-# Signal to notify other systems of a state change
-signal state_changed(new_state)
-
-func _ready():
-    # Initialize the system
-    print("Game State System Initialized. Current State: ", State.EXPLORATION)
-
-# Function to switch states
-func change_state(new_state: int):
-    if current_state == new_state:
-        return
-    
+func change_state(new_state):
     current_state = new_state
-    state_changed.emit(current_state)
-    print("State Changed to: ", current_state)
+    # Emit state_changed signal if it were defined in a node context
+    pass
 
-# Helper functions for clarity
-func is_exploration() -> bool:
+func is_exploration():
     return current_state == State.EXPLORATION
 
-func is_transition() -> bool:
+func is_transition():
     return current_state == State.TRANSITION
 
-func is_combat() -> bool:
+func is_combat():
     return current_state == State.COMBAT
+
+func get_state_name() -> String:
+    match current_state:
+        State.EXPLORATION:
+            return "EXPLORATION"
+        State.TRANSITION:
+            return "TRANSITION"
+        State.COMBAT:
+            return "COMBAT"
+        _:
+            return "UNKNOWN"
